@@ -8,6 +8,7 @@ if('serviceWorker' in navigator) {
         })
 }
 
+//Web Install Banner
 window.addEventListener('beforeinstallprompt', function(event) {
     console.log('beforeinstallprompt fired');
     event.preventDefault();

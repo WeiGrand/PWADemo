@@ -73,9 +73,7 @@ npm run start
 
    最终效果如下
 
-   ![](http://olkiij9c9.bkt.clouddn.com/IMG_0235%20%281%29.PNG)
-
-   ![](http://olkiij9c9.bkt.clouddn.com/IMG_0237%20%281%29.PNG)
+   ![](http://olkiij9c9.bkt.clouddn.com/IMG_0235%20%281%29.PNG?imageView2/2/w/200)![](http://olkiij9c9.bkt.clouddn.com/IMG_0237%20%281%29.PNG?imageView2/2/w/200)
 
 
 
@@ -160,11 +158,54 @@ self.addEventListener('activate', function(event) {
 
 要触发 `activate` 事件需要关掉 `webview` 然后重新打开
 
+### Web Install Banner
+
+为应用添加网络应用安装横幅
+
+修改 `/public/src/app.js`
+
+```javascript
+...
+//Web Install Banner
+//beforeinstallprompt 在 install banner 弹窗之前触发 event.preventDefault()
+//event.preventDefault() 可以阻止弹出
+//event.prompt() 可以手动弹出
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt', function(event) {
+    console.log('beforeinstallprompt fired');
+    event.preventDefault();
+    deferredPrompt = event;
+    return false;
+});
+
+//deferredPrompt.prompt();
+```
+
+测试 `install banner`
+
+在 `Chrome Devtool` 的 `Application->Manifest` 中点击 `Add to homescreen` 即刻触发 `install banner` 弹出事件。
+
+![](http://olkiij9c9.bkt.clouddn.com/QQ20180406-220049.png)
 
 
 
+### 如何注销一个 Service Woker
+
+```javascript
+navigator.serviceWorker.getRegistrations().then(function(registrations) {
+ for(let registration of registrations) {
+  registration.unregister()
+} })
+```
 
 
+
+### 参考链接
+
+- <https://jakearchibald.github.io/isserviceworkerready/>
+- <https://developers.google.com/web/tools/chrome-devtools/remote-debugging/>
+- https://developers.google.com/web/fundamentals/app-install-banners/
+- <https://developers.google.com/web/fundamentals/getting-started/primers/service-workers>
 
 
 
