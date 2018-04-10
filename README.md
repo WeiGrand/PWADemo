@@ -1,11 +1,12 @@
+
+# 升级你的 WebApp 为 Progressive Web App
+
 ### 运行本项目
 
 ```bash
 npm install
 npm run start
 ```
-
-# 升级你的 WebApp 为 Progressive Web App
 
 ## Step1: 加入 manifest.json
 
