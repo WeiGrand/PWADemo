@@ -210,3 +210,111 @@ navigator.serviceWorker.getRegistrations().then(function(registrations) {
 
 
 
+
+## Step3: 使用 Cache API 缓存浏览器请求
+
+### add/addAll
+
+`Cache` 接口提供缓存的 `Request` / `Response `对象对的存储机制，作为`ServiceWorker` 生命周期的一部分。
+
+`key`: `Request`
+
+`value`: `Response`
+
+![](http://olkiij9c9.bkt.clouddn.com/cacheapi.jpg)
+
+修改 `sw.js`
+
+```javascript
+self.addEventListener('install', function(event) {
+    console.log('[Service Worker] Installing Service Worker ...', event);
+
+    //waitUntil 方法用于保证执行完 cache 的方法再进行 fetch 事件
+    event.waitUntil(
+        //Opens Cache objects
+        caches.open('static') // cache的名字 （自定义）
+            .then(function(cache) {
+                console.log('[Service Worker] Precaching App Shell');
+                cache.add('/');
+                cache.add('/src/index.html');
+                cache.add('/src/js/app.js');
+            })
+    );
+});
+
+self.addEventListener('fetch', function(event) {
+    event.respondWith(
+        caches.match(event.request)
+            .then(function(response) {
+                if(response) { // response or null
+                    return response;
+                }else {
+                    return fetch(event.request);
+                }
+            })
+    );
+});
+```
+
+然后重启页面，选择 `offline` 环境刷新后可以看到，`index.html` 和 `app.js` 已经被缓存并可以离线访问
+
+![](http://olkiij9c9.bkt.clouddn.com/127.0.0.1_8080_%28iPhone%206_7_8%29.png)
+
+打开 `控制台` 查看 `Cache Storage` 可以看到新增的 `static` 记录，和缓存的请求
+
+![](http://olkiij9c9.bkt.clouddn.com/cache.img.png)
+
+
+
+除了一个个 `add` 还可以使用 `addAll` 来一次性增加，下面使用 `addAll` 给剩余的请求加上缓存
+
+```javascript
+self.addEventListener('install', function(event) {
+    console.log('[Service Worker] Installing Service Worker ...', event);
+
+    //waitUntil 方法用于保证执行完 cache 的方法再进行 fetch 事件
+    event.waitUntil(
+        //Opens Cache objects
+        caches.open('static') // cache的名字 （自定义）
+            .then(function(cache) {
+                console.log('[Service Worker] Precaching App Shell');
+
+                cache.addAll([
+                    '/',
+                    '/index.html',
+                    '/src/js/app.js',
+                    '/src/js/feed.js',
+                    '/src/js/material.min.js',
+                    '/src/css/app.css',
+                    '/src/css/feed.css',
+                    '/src/images/main-image.jpg',
+                    'https://fonts.googleapis.com/css?family=Roboto:400,700',
+                    'https://fonts.googleapis.com/icon?family=Material+Icons',
+                    'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
+                ]);
+            })
+    );
+});
+```
+
+再次重启页面，选择 `offline` 环境刷新后可以看到「几乎」所有请求都能被成功缓存了下来，还没被缓存的请求来自 `https://fonts.googleapis.com/icon?family=Material+Icons` 文件中的请求
+
+```css
+/* fallback */
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/materialicons/v36/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2) format('woff2');
+}
+```
+
+所以可以得一个结论就是，对于一个真实的应用不可能像上面那样手动一条一条请求加缓存，我们需要 `动态缓存`
+
+### Dynamic Caching
+
+
+
+### 参考链接
+
+- https://developer.mozilla.org/en-US/docs/Web/API/Cache
