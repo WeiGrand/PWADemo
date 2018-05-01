@@ -313,8 +313,86 @@ self.addEventListener('install', function(event) {
 
 ### Dynamic Caching
 
+之前在 `fetch` 事件中，如果检查到有缓存的 `request` 则返回缓存的 `response` ，否则用 `fetch` 发起请求，我们可以在这一步中，将之前没有被缓存的 `request` 缓存起来
 
+```javascript
+self.addEventListener('fetch', function(event) {
+    event.respondWith(
+        caches.match(event.request)
+            .then(function(response) {
+                if(response) { // response or null
+                    return response;
+                }else {
+                    return fetch(event.request)
+                        .then(function(res) {
+                            caches.open('dynamic')
+                                .then(function(cache) {
+                                    cache.put(event.request.url, res.clone()); // response 只会被读一次然后重置为空，所以需要拷贝一份
+                                    return res; // 记得将 response 返回，否则最终不返回任何东西
+                                })
+                        })
+                }
+            })
+    );
+});
+```
+
+> `add` 和 `put` 的区别是：`add` 接受一个 `url`，发出 `request` 并自动将 `response` 缓存下来，而 `put` 不发送 `request`，需要你手动将 `request` 和 `response` 对应起来。
+
+再次重启页面，选择 `offline` 环境刷新后可以发现所有请求都被成功缓存，查看 `Cache Storage` 可以看到多了一个名为 `dynamic` 的缓存模块
+
+### 更新缓存
+
+现在给 `app.js` 加个 `log`
+
+```javascript
+console.log('app.js updated');
+```
+
+然后刷新页面，很显然新加的 `log` 并不会在 `控制台` 中出现，因为 `Service Worker` 仍返回旧的 `app.js`，那么，如何更新呢？
+
+当代码更新时，可以新增一个缓存模块名为 `static-v2`
+
+修改 `sw.js`
+
+```javascript
+self.addEventListener('install', function(event) {
+    event.waitUntil(
+        caches.open('static-v2') // 这里将 static 改为 static-v2
+            .then(function(cache) {
+                ...
+            })
+    );
+});
+```
+
+重启页面，可以发现更新依然没生效，因为 `static` 还保留着旧的缓存，`caches.match` 并不知道哪份是新的，所以需要将旧的清掉
+
+再次修改 `sw.js`
+
+```javascript
+self.addEventListener('activate', function(event) {
+    event.waitUntil(
+        caches.keys() // ['static', 'static-v2', 'dynamic']
+            .then(function(keyList) {
+                return Promise.all(keyList.map(function(key) {
+                    if(key !== 'static-v2' && key !== 'dynamic') {
+                        console.log('[Service Worker] Removing old cache ', key);
+                        return caches.delete(key);
+                    }
+                }))
+            })
+    );
+
+    return self.clients.claim();
+});
+```
+
+再次重启页面，可以看到 `控制台` 出现了 `app.js updated`
 
 ### 参考链接
 
 - https://developer.mozilla.org/en-US/docs/Web/API/Cache
+- <https://jakearchibald.com/2014/offline-cookbook/#cache-persistence>
+- <https://developer.mozilla.org/en/docs/Web/API/Service_Worker_API>
+- <https://developers.google.com/web/fundamentals/getting-started/primers/service-workers>

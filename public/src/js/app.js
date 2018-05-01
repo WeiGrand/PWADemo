@@ -15,3 +15,5 @@ window.addEventListener('beforeinstallprompt', function(event) {
     deferredPrompt = event;
     return false;
 });
+
+console.log('app.js updated');
