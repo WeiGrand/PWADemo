@@ -2,7 +2,7 @@
  * Created by heweiguang on 2018/4/6.
  */
 
-var CACHE_STATIC_NAME = 'static-v3', CACHE_DYNAMIC_NAME = 'dynamic-v2';
+var CACHE_STATIC_NAME = 'static-v5', CACHE_DYNAMIC_NAME = 'dynamic-v3';
 
 //self 是 service worker 的引用
 self.addEventListener('install', function(event) {
@@ -18,6 +18,7 @@ self.addEventListener('install', function(event) {
                 cache.addAll([
                     '/',
                     '/index.html',
+                    '/offline.html',
                     '/src/js/app.js',
                     '/src/js/feed.js',
                     '/src/js/material.min.js',
@@ -66,7 +67,10 @@ self.addEventListener('fetch', function(event) {
                                 })
                         })
                         .catch(function(err) {
-
+                            return caches.open(CACHE_STATIC_NAME)
+                                .then(function(cache) {
+                                    return cache.match('/offline.html')
+                                })
                         });
                 }
             })

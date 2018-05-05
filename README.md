@@ -396,3 +396,71 @@ self.addEventListener('activate', function(event) {
 - <https://jakearchibald.com/2014/offline-cookbook/#cache-persistence>
 - <https://developer.mozilla.org/en/docs/Web/API/Service_Worker_API>
 - <https://developers.google.com/web/fundamentals/getting-started/primers/service-workers>
+
+
+
+## Step4: 为应用提供默认页面(Fallback Page) 
+
+在 `离线` 的状态下点击左上角导航跳转到 `帮助页`，可以发现什么都看不到，因为现在并没有给这个页面加缓存，所以我们需要在某个页面没被缓存的情况下提供一个默认的页面
+
+首先新建一个 `html `
+
+```bash
+touch public/offline.html
+```
+
+然后修改 `sw.js`
+
+首先将 `offline.html` 缓存起来
+
+```javascript
+self.addEventListener('install', function(event) {
+    ...
+    event.waitUntil(
+        caches.open(CACHE_STATIC_NAME)
+        	...
+            .then(function(cache) {
+                cache.addAll([
+                    ...,
+                    'offline.html'
+                ]);
+            })
+    );
+});
+```
+
+在 `fetch` 失败的时候返回 `offline.html`
+
+```javascript
+self.addEventListener('fetch', function(event) {
+    event.respondWith(
+        caches.match(event.request)
+            .then(function(response) {
+                if(response) {
+                    return response;
+                }else {
+                    return fetch(event.request)
+                        .then(function(res) {
+                        	...
+                        })
+                        .catch(function(err) {
+                            
+                            return caches.open(CACHE_STATIC_NAME)
+                                .then(function(cache) {
+                                    return cache.match('/offline.html')
+                                })
+                        });
+                }
+            })
+    );
+});
+```
+
+然后重启页面（记得更新缓存名），再次访问 `帮助页` 可以看到 `offline.html`
+
+![](http://olkiij9c9.bkt.clouddn.com/127.0.0.1_8080_help%28iPhone%206_7_8%29.png?imageView2/2/w/200)
+
+上面的解决方式比较粗躁，因为请求的不管是不是 `html` 都返回这份 `html`（比如请求一份 `JSON` 数据的时候失败也是返回 `offline.html`）
+
+
+
